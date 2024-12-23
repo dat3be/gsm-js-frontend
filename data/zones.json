@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name": "Go Vap",
+    "apiEndpoint": "https://f01b-171-240-150-238.ngrok-free.app",
+    "portCount": 0
+  },
+  {
+    "id": 2,
+    "name": "GSM",
+    "apiEndpoint": "https://4b8c-171-240-150-238.ngrok-free.app",
+    "portCount": 0
+  },
+  {
+    "id": 3,
+    "name": "LOCAL",
+    "apiEndpoint": "https://fb7a-171-240-150-238.ngrok-free.app",
+    "portCount": 32
+  }
+]

@@ -1,83 +1,113 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Zone, sampleZones } from '../types/port'
-import { Loader2 } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Zone } from "../types/port";
+import { Loader2 } from "lucide-react";
 
 export default function ZoneManagement() {
-  const [zones, setZones] = useState<Zone[]>([])
-  const [newZone, setNewZone] = useState({ name: '', apiEndpoint: '' })
-  const [editingZone, setEditingZone] = useState<Zone | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [newZone, setNewZone] = useState({ name: "", apiEndpoint: "" });
+  const [editingZone, setEditingZone] = useState<Zone | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchZones()
-  }, [])
+    fetchZones();
+  }, []);
 
   const fetchZones = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      // Simulating API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setZones(sampleZones)
+      const response = await fetch("/api/zones");
+      if (!response.ok) throw new Error("Failed to fetch zones.");
+      const data = await response.json();
+      setZones(data);
     } catch (error) {
-      console.error('Error fetching zones:', error)
+      console.error("Error fetching zones:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleAddZone = async () => {
-    if (newZone.name && newZone.apiEndpoint) {
-      setLoading(true)
-      try {
-        // Simulating API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        const portCount = Math.floor(Math.random() * 128) + 32 // Random port count between 32 and 160
-        const newId = (Math.max(...zones.map(z => parseInt(z.id))) + 1).toString()
-        const createdZone: Zone = { id: newId, ...newZone, portCount }
-        setZones([...zones, createdZone])
-        setNewZone({ name: '', apiEndpoint: '' })
-      } catch (error) {
-        console.error('Error adding zone:', error)
-      } finally {
-        setLoading(false)
-      }
+    if (!newZone.name || !newZone.apiEndpoint) {
+      alert("Please provide both a name and API endpoint.");
+      return;
     }
-  }
+  
+    setLoading(true);
+    try {
+      const response = await fetch("/api/zones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newZone),
+      });
+  
+      if (!response.ok) throw new Error("Failed to add zone.");
+      const createdZone = await response.json();
+  
+      setZones((prevZones) => [...prevZones, createdZone]);
+      setNewZone({ name: "", apiEndpoint: "" });
+    } catch (error) {
+      console.error("Error adding zone:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  
 
   const handleUpdateZone = async () => {
-    if (editingZone) {
-      setLoading(true)
-      try {
-        // Simulating API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        setZones(zones.map(z => z.id === editingZone.id ? editingZone : z))
-        setEditingZone(null)
-      } catch (error) {
-        console.error('Error updating zone:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-  }
+    if (!editingZone) return;
 
-  const handleDeleteZone = async (id: string) => {
-    setLoading(true)
+    setLoading(true);
     try {
-      // Simulating API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setZones(zones.filter(z => z.id !== id))
+      const response = await fetch(`/api/zones/${editingZone.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingZone),
+      });
+
+      if (!response.ok) throw new Error("Failed to update zone.");
+      const updatedZone = await response.json();
+
+      setZones((prevZones) =>
+        prevZones.map((zone) => (zone.id === updatedZone.id ? updatedZone : zone))
+      );
+      setEditingZone(null);
     } catch (error) {
-      console.error('Error deleting zone:', error)
+      console.error("Error updating zone:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  const handleDeleteZone = async (id: number) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/zones/${id}`, {
+        method: "DELETE",
+      });
+  
+      if (!response.ok) throw new Error("Failed to delete zone.");
+      setZones((prevZones) => prevZones.filter((zone) => zone.id !== id));
+    } catch (error) {
+      console.error("Error deleting zone:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
 
   return (
     <Card>
@@ -86,7 +116,7 @@ export default function ZoneManagement() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <Input
               placeholder="Zone Name"
               value={newZone.name}
@@ -95,10 +125,14 @@ export default function ZoneManagement() {
             <Input
               placeholder="API Endpoint"
               value={newZone.apiEndpoint}
-              onChange={(e) => setNewZone({ ...newZone, apiEndpoint: e.target.value })}
+              onChange={(e) =>
+                setNewZone({ ...newZone, apiEndpoint: e.target.value })
+              }
             />
             <Button onClick={handleAddZone} disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
               Add Zone
             </Button>
           </div>
@@ -120,7 +154,12 @@ export default function ZoneManagement() {
                     {editingZone?.id === zone.id ? (
                       <Input
                         value={editingZone.name}
-                        onChange={(e) => setEditingZone({ ...editingZone, name: e.target.value })}
+                        onChange={(e) =>
+                          setEditingZone({
+                            ...editingZone,
+                            name: e.target.value,
+                          })
+                        }
                       />
                     ) : (
                       zone.name
@@ -130,7 +169,12 @@ export default function ZoneManagement() {
                     {editingZone?.id === zone.id ? (
                       <Input
                         value={editingZone.apiEndpoint}
-                        onChange={(e) => setEditingZone({ ...editingZone, apiEndpoint: e.target.value })}
+                        onChange={(e) =>
+                          setEditingZone({
+                            ...editingZone,
+                            apiEndpoint: e.target.value,
+                          })
+                        }
                       />
                     ) : (
                       zone.apiEndpoint
@@ -140,14 +184,29 @@ export default function ZoneManagement() {
                   <TableCell>
                     {editingZone?.id === zone.id ? (
                       <Button onClick={handleUpdateZone} disabled={loading}>
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {loading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
                         Save
                       </Button>
                     ) : (
                       <>
-                        <Button variant="outline" className="mr-2" onClick={() => setEditingZone(zone)}>Edit</Button>
-                        <Button variant="destructive" onClick={() => handleDeleteZone(zone.id)} disabled={loading}>
-                          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        <Button
+                          variant="outline"
+                          className="mr-2"
+                          onClick={() => setEditingZone(zone)}
+                          disabled={loading}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={() => handleDeleteZone(zone.id)}
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : null}
                           Delete
                         </Button>
                       </>
@@ -160,6 +219,5 @@ export default function ZoneManagement() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
-
